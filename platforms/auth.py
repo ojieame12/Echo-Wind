@@ -40,6 +40,11 @@ class PlatformAuthManager:
         # Validate redirect URI format
         if not self.twitter_redirect_uri.startswith("https://echo-wind.onrender.com"):
             raise ValueError(f"Invalid redirect URI format: {self.twitter_redirect_uri}")
+            
+        # Clean credentials
+        self.twitter_client_id = self.twitter_client_id.strip()
+        self.twitter_client_secret = self.twitter_client_secret.strip()
+        self.twitter_redirect_uri = self.twitter_redirect_uri.strip()
     
     async def get_twitter_auth_url(self) -> str:
         """Get Twitter OAuth URL"""
@@ -69,9 +74,9 @@ class PlatformAuthManager:
             # Build auth URL
             params = {
                 'response_type': 'code',
-                'client_id': self.twitter_client_id.strip(),  # Ensure no whitespace
-                'redirect_uri': 'https://echo-wind.onrender.com/platforms/twitter/callback',  # Hardcode the correct URI
-                'scope': 'tweet.read tweet.write users.read offline.access dm.read dm.write',  # Added DM scopes to match permissions
+                'client_id': self.twitter_client_id,
+                'redirect_uri': self.twitter_redirect_uri,
+                'scope': 'tweet.read tweet.write users.read offline.access dm.read dm.write',
                 'state': state,
                 'code_challenge': code_challenge,
                 'code_challenge_method': 'S256'
@@ -80,7 +85,7 @@ class PlatformAuthManager:
             # Log exact values for debugging (except secrets)
             logger.info("OAuth Parameters:")
             logger.info(f"client_id length: {len(params['client_id'])}")
-            logger.info(f"client_id: {params['client_id']}")  # Safe to log client_id
+            logger.info(f"client_id: {params['client_id']}")
             logger.info(f"redirect_uri: {params['redirect_uri']}")
             logger.info(f"scope: {params['scope']}")
             logger.info(f"response_type: {params['response_type']}")
@@ -97,7 +102,7 @@ class PlatformAuthManager:
         except Exception as e:
             logger.error(f"Failed to get Twitter auth URL", exc_info=True)
             raise Exception(f"Failed to get Twitter auth URL: {str(e)}")
-            
+    
     async def handle_twitter_callback(self, code: str, state: str) -> Dict:
         """Handle Twitter OAuth2 callback"""
         try:
@@ -115,7 +120,7 @@ class PlatformAuthManager:
                 'grant_type': 'authorization_code',
                 'client_id': self.twitter_client_id,
                 'client_secret': self.twitter_client_secret,
-                'redirect_uri': 'https://echo-wind.onrender.com/platforms/twitter/callback',  # Hardcode the correct URI
+                'redirect_uri': self.twitter_redirect_uri,
                 'code_verifier': code_verifier
             }
             
@@ -129,9 +134,13 @@ class PlatformAuthManager:
             response = requests.post(token_url, headers=headers, data=data)
             logger.info(f"Token response status: {response.status_code}")
             logger.info(f"Token response body: {response.text}")
-            response.raise_for_status()
-            token_data = response.json()
             
+            if response.status_code != 200:
+                error_msg = f"Twitter token request failed with status {response.status_code}: {response.text}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
+                
+            token_data = response.json()
             return token_data
             
         except Exception as e:
