@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 import base64
 from pydantic import BaseModel
+import logging
 
 from models.models import User, PlatformAccount, PlatformType, ContentPiece, ContentStatus
 from platforms.twitter import TwitterClient
@@ -12,6 +13,8 @@ from api.deps import get_db, get_current_user
 from core.config import settings
 
 router = APIRouter(tags=["twitter"])
+
+logger = logging.getLogger(__name__)
 
 class TwitterAuthResponse(BaseModel):
     auth_url: str
@@ -73,10 +76,21 @@ async def twitter_auth(current_user: User = Depends(get_current_user)):
     auth_manager = PlatformAuthManager()
     
     try:
+        logger.info(f"Getting Twitter auth URL for user {current_user.email}")
+        
+        # Log environment variables (redacted)
+        logger.info("Twitter environment variables:")
+        logger.info(f"TWITTER_CLIENT_ID set: {'Yes' if settings.TWITTER_CLIENT_ID else 'No'}")
+        logger.info(f"TWITTER_CLIENT_SECRET set: {'Yes' if settings.TWITTER_CLIENT_SECRET else 'No'}")
+        logger.info(f"TWITTER_REDIRECT_URI: {settings.TWITTER_REDIRECT_URI}")
+        
         # Get auth URL with code verifier in state
         auth_url = await auth_manager.get_twitter_auth_url()
+        logger.info(f"Generated Twitter auth URL: {auth_url}")
+        
         return {"auth_url": auth_url}
     except Exception as e:
+        logger.error(f"Failed to get Twitter auth URL: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to get Twitter auth URL: {str(e)}"
