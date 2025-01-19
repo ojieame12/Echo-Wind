@@ -1,13 +1,9 @@
 services:
   - type: web
     name: social-content-generator
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT --log-level debug
-    healthCheckPath: /health
+    env: docker
+    dockerfilePath: ./Dockerfile
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.9.18
       - key: DATABASE_URL
         value: postgresql://social_content_generator_db_user:Ehfjyr9ogZLqUdntmVCrCMkQFBTqIcqE@dpg-cu6griaj1k6c73f7ce2g-a/social_content_generator_db
       - key: TWITTER_CLIENT_ID
