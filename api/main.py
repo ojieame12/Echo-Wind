@@ -3,6 +3,8 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.routes import twitter, auth
+from alembic import command
+from alembic.config import Config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -28,6 +30,16 @@ async def startup_event():
     port = os.getenv("PORT", "Not set")
     logger.info(f"Starting application on port {port}")
     logger.info(f"Database URL: {os.getenv('DATABASE_URL', 'Not set')}")
+    
+    try:
+        # Run migrations
+        logger.info("Running database migrations...")
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+        logger.info("Database migrations completed successfully")
+    except Exception as e:
+        logger.error(f"Error running migrations: {str(e)}")
+        # Don't raise the error - let the app continue to start
 
 @app.get("/")
 async def root():
