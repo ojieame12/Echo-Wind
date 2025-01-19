@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request, Response
 from sqlalchemy.orm import Session
 from typing import Dict, Optional, List
 from datetime import datetime
@@ -6,7 +6,7 @@ import json
 import base64
 from pydantic import BaseModel
 import logging
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 import traceback
 
 from models.models import User, PlatformAccount, PlatformType, ContentPiece, ContentStatus
@@ -167,6 +167,34 @@ async def twitter_callback(
         raise HTTPException(
             status_code=500,
             detail=f"Twitter authentication failed: {str(e)}"
+        )
+
+@router.get("/dashboard")
+async def twitter_dashboard(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Twitter dashboard"""
+    try:
+        # Get Twitter client
+        client = await get_twitter_client(db, current_user)
+        
+        # Get Twitter profile
+        profile = await client.get_profile()
+        print(f"Received Twitter profile: {profile}")
+        
+        return {
+            "success": True,
+            "profile": profile
+        }
+        
+    except Exception as e:
+        print(f"Error in twitter_dashboard: {str(e)}")
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get Twitter profile: {str(e)}"
         )
 
 @router.post("/verify")
