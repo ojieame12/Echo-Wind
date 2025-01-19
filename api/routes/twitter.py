@@ -8,6 +8,7 @@ from pydantic import BaseModel
 import logging
 from fastapi.responses import JSONResponse, RedirectResponse
 import traceback
+import time
 
 from models.models import User, PlatformAccount, PlatformType, ContentPiece, ContentStatus
 from platforms.twitter import TwitterClient
@@ -128,25 +129,32 @@ async def twitter_callback(
     state: Optional[str] = None,
     error: Optional[str] = None,
     error_description: Optional[str] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    error_uri: Optional[str] = None,
+    db: Session = Depends(get_db)
 ):
     """Handle Twitter OAuth callback"""
     try:
         # Log all query parameters for debugging
         params = dict(request.query_params)
-        logger.info(f"Twitter callback received with params: {params}")
+        logger.info(f"Twitter callback received with params: {json.dumps(params, indent=2)}")
         
         # Check for errors from Twitter
         if error:
             error_msg = f"Twitter OAuth error: {error}"
             if error_description:
                 error_msg += f" - {error_description}"
+            if error_uri:
+                error_msg += f" (More info: {error_uri})"
             logger.error(error_msg)
             return RedirectResponse(url=f"/error?message={error_msg}")
             
-        if not code or not state:
-            error_msg = "Missing code or state in Twitter callback"
+        if not code:
+            error_msg = "Missing 'code' parameter in Twitter callback"
+            logger.error(error_msg)
+            return RedirectResponse(url=f"/error?message={error_msg}")
+            
+        if not state:
+            error_msg = "Missing 'state' parameter in Twitter callback"
             logger.error(error_msg)
             return RedirectResponse(url=f"/error?message={error_msg}")
             
@@ -159,6 +167,12 @@ async def twitter_callback(
             state_data = json.loads(base64.urlsafe_b64decode(state.encode()).decode())
             if 'ts' not in state_data or 'cv' not in state_data:
                 raise ValueError("Invalid state format")
+            
+            # Check if state is expired (10 minute timeout)
+            state_time = state_data.get('ts', 0)
+            if time.time() - state_time > 600:
+                raise ValueError("State parameter has expired")
+                
         except Exception as e:
             error_msg = f"Invalid state parameter: {str(e)}"
             logger.error(error_msg)
@@ -172,18 +186,17 @@ async def twitter_callback(
             token_data = await auth_manager.handle_twitter_callback(code, state)
             logger.info("Successfully exchanged code for tokens")
             
-            # Create or update platform account
+            # Create platform account entry
             platform_account = PlatformAccount(
-                user_id=current_user.id,
-                platform=PlatformType.TWITTER,
-                username=token_data["username"],
-                credentials=token_data,
-                is_active=True
+                platform_type=PlatformType.TWITTER,
+                access_token=token_data["access_token"],
+                refresh_token=token_data.get("refresh_token"),
+                expires_at=datetime.utcnow() + timedelta(seconds=token_data.get("expires_in", 7200))
             )
             
-            db.merge(platform_account)
+            db.add(platform_account)
             db.commit()
-            logger.info(f"Saved Twitter credentials for user {current_user.email}")
+            logger.info("Saved Twitter credentials")
             
             return RedirectResponse(url="/dashboard?success=true")
             

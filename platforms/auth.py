@@ -63,17 +63,24 @@ class PlatformAuthManager:
             # Build auth URL
             params = {
                 'response_type': 'code',
-                'client_id': self.twitter_client_id,
-                'redirect_uri': self.twitter_redirect_uri,
-                'scope': 'tweet.read tweet.write users.read',  
+                'client_id': self.twitter_client_id.strip(),  # Ensure no whitespace
+                'redirect_uri': self.twitter_redirect_uri.strip(),  # Ensure no whitespace
+                'scope': 'tweet.read tweet.write users.read',
                 'state': state,
                 'code_challenge': code_challenge,
                 'code_challenge_method': 'S256'
             }
-            logger.info(f"Auth URL parameters: {json.dumps({k: v[:10] + '...' if k not in ['response_type', 'scope', 'code_challenge_method'] else v for k, v in params.items()})}")
             
-            auth_url = f"https://twitter.com/i/oauth2/authorize?{urlencode(params)}"
-            logger.info(f"Generated auth URL: {auth_url[:100]}...")
+            # Log full parameters for debugging
+            debug_params = params.copy()
+            debug_params['client_id'] = debug_params['client_id'][:10] + '...'
+            debug_params['code_challenge'] = debug_params['code_challenge'][:10] + '...'
+            debug_params['state'] = debug_params['state'][:10] + '...'
+            logger.info(f"Full auth parameters: {json.dumps(debug_params, indent=2)}")
+            
+            # Build and encode URL properly
+            auth_url = "https://twitter.com/i/oauth2/authorize?" + urlencode(params)
+            logger.info(f"Final auth URL: {auth_url[:100]}...")
             
             return auth_url
             
