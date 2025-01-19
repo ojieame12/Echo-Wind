@@ -12,6 +12,8 @@ import json
 import time
 import logging
 
+from core.config import settings
+
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -19,9 +21,9 @@ load_dotenv()
 class PlatformAuthManager:
     def __init__(self):
         # Twitter API credentials
-        self.twitter_client_id = os.getenv("TWITTER_CLIENT_ID")
-        self.twitter_client_secret = os.getenv("TWITTER_CLIENT_SECRET")
-        self.twitter_redirect_uri = os.getenv("TWITTER_REDIRECT_URI")
+        self.twitter_client_id = settings.TWITTER_CLIENT_ID
+        self.twitter_client_secret = settings.TWITTER_CLIENT_SECRET
+        self.twitter_redirect_uri = settings.TWITTER_REDIRECT_URI
         
         logger.info(f"Initialized PlatformAuthManager")
         logger.info(f"Twitter Client ID: {self.twitter_client_id[:10]}...")
@@ -34,6 +36,10 @@ class PlatformAuthManager:
             raise ValueError("TWITTER_CLIENT_SECRET not set")
         if not self.twitter_redirect_uri:
             raise ValueError("TWITTER_REDIRECT_URI not set")
+        
+        # Validate redirect URI format
+        if not self.twitter_redirect_uri.startswith("https://echo-wind.onrender.com"):
+            raise ValueError(f"Invalid redirect URI format: {self.twitter_redirect_uri}")
     
     async def get_twitter_auth_url(self) -> str:
         """Get Twitter OAuth URL"""
@@ -64,8 +70,8 @@ class PlatformAuthManager:
             params = {
                 'response_type': 'code',
                 'client_id': self.twitter_client_id.strip(),  # Ensure no whitespace
-                'redirect_uri': self.twitter_redirect_uri.strip(),  # Ensure no whitespace
-                'scope': 'tweet.read tweet.write users.read offline.access dm.read dm.write',
+                'redirect_uri': 'https://echo-wind.onrender.com/platforms/twitter/callback',  # Hardcode the correct URI
+                'scope': 'tweet.read tweet.write users.read offline.access dm.read dm.write',  # Added DM scopes to match permissions
                 'state': state,
                 'code_challenge': code_challenge,
                 'code_challenge_method': 'S256'
@@ -109,7 +115,7 @@ class PlatformAuthManager:
                 'grant_type': 'authorization_code',
                 'client_id': self.twitter_client_id,
                 'client_secret': self.twitter_client_secret,
-                'redirect_uri': self.twitter_redirect_uri,
+                'redirect_uri': 'https://echo-wind.onrender.com/platforms/twitter/callback',  # Hardcode the correct URI
                 'code_verifier': code_verifier
             }
             
@@ -117,7 +123,7 @@ class PlatformAuthManager:
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
             
-            logger.info(f"Token request data: {json.dumps({k: v[:10] + '...' if k not in ['grant_type'] else v for k, v in data.items()})}")
+            logger.info(f"Token request data: {json.dumps({k: v[:10] + '...' if k not in ['grant_type', 'redirect_uri'] else v for k, v in data.items()})}")
             logger.info(f"Token request headers: {headers}")
             
             response = requests.post(token_url, headers=headers, data=data)
