@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LinkedIn Authorization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #0077b5;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #e1f5e1;
+            border: 1px solid #c3e6c3;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <h1>LinkedIn Authorization</h1>
+    <div class="form-group">
+        <label for="code">Authorization Code:</label>
+        <input type="text" id="code" placeholder="Paste the authorization code here">
+    </div>
+    <div class="form-group">
+        <label for="state">State:</label>
+        <input type="text" id="state" placeholder="Paste the state here">
+    </div>
+    <button onclick="submitCode()">Submit</button>
+    <div id="response" class="response" style="display: none;"></div>
+
+    <script>
+        async function submitCode() {
+            const code = document.getElementById('code').value;
+            const state = document.getElementById('state').value;
+            const responseDiv = document.getElementById('response');
+
+            try {
+                const response = await fetch('/linkedin/callback?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state));
+                const data = await response.json();
+                
+                responseDiv.className = 'response ' + (data.success ? 'success' : 'error');
+                responseDiv.textContent = data.message || JSON.stringify(data);
+                responseDiv.style.display = 'block';
+            } catch (error) {
+                responseDiv.className = 'response error';
+                responseDiv.textContent = 'Error: ' + error.message;
+                responseDiv.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

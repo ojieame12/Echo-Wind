@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/social_content
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=social_content
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  celery_worker:
+    build: .
+    command: celery -A app.worker worker --loglevel=info
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/social_content
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - web
+      - db
+      - redis
+
+  celery_beat:
+    build: .
+    command: celery -A app.worker beat --loglevel=info
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/social_content
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - web
+      - db
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:

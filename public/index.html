@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Content Generator</title>
+    <script>
+        async function getTwitterAuth() {
+            const response = await fetch('/api/twitter/auth', {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                }
+            });
+            const data = await response.json();
+            window.location.href = data.auth_url;
+        }
+    </script>
+</head>
+<body>
+    <h1>Social Content Generator</h1>
+    <button onclick="getTwitterAuth()">Connect Twitter</button>
+</body>
+</html>
