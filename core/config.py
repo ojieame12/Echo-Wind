@@ -1,3 +1,8 @@
+"""
+Configuration module for the Social Content Generator.
+Updated for Render deployment with external PostgreSQL database.
+"""
+
 from pydantic import BaseSettings
 import os
 from dotenv import load_dotenv
@@ -36,6 +41,11 @@ class Settings(BaseSettings):
     BLUESKY_IDENTIFIER: str = os.getenv("BLUESKY_IDENTIFIER", "")
     BLUESKY_PASSWORD: str = os.getenv("BLUESKY_PASSWORD", "")
 
+    # JWT Configuration
+    JWT_SECRET: str = os.getenv("JWT_SECRET", "your_jwt_secret")
+    JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+    
     class Config:
         case_sensitive = True
 
