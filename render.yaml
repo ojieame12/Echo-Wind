@@ -6,9 +6,9 @@ services:
     startCommand: gunicorn -c gunicorn_config.py api.main:app
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
-      - key: PORT
-        value: 8000
+        value: 3.9.18
+      - key: DATABASE_URL
+        value: postgresql://postgres:postgres@localhost:5432/social_content_generator
       - key: TWITTER_CLIENT_ID
         value: R2pjMnZONWw2dnpCcEJoNHdqSDE6MTpjaQ
       - key: TWITTER_CLIENT_SECRET
