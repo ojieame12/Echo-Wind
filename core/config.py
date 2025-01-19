@@ -5,9 +5,12 @@ Updated for Render deployment with external PostgreSQL database.
 
 from pydantic import BaseSettings
 import os
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Social Content Generator"
@@ -49,4 +52,26 @@ class Settings(BaseSettings):
     class Config:
         case_sensitive = True
 
-settings = Settings()
+from functools import lru_cache
+
+@lru_cache()
+def get_settings() -> Settings:
+    """Get settings instance"""
+    try:
+        logger.info("Loading settings...")
+        settings = Settings()
+        
+        # Log loaded settings (redacted)
+        logger.info("Loaded settings:")
+        for key, value in settings.dict().items():
+            if any(secret in key.lower() for secret in ['secret', 'password', 'token']):
+                logger.info(f"{key}: [REDACTED]")
+            else:
+                logger.info(f"{key}: {value}")
+        
+        return settings
+    except Exception as e:
+        logger.error(f"Failed to load settings: {str(e)}", exc_info=True)
+        raise
+
+settings = get_settings()

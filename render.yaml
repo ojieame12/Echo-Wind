@@ -15,9 +15,9 @@ services:
       - key: TWITTER_BEARER_TOKEN
         value: AAAAAAAAAAAAAAAAAAAAAGc%2FyAEAAAAAIwk4MWfZdxQcust%2FSCd%2B58l7GCY%3DJEQAXPGjGjpg2uDs9LSYVDCYMSEZUiAYIWvRfN5qlCZVYMmymX
       - key: TWITTER_REDIRECT_URI
-        value: https://echo-wind.onrender.com/auth/twitter/callback
+        value: https://echo-wind.onrender.com/platforms/twitter/callback
       - key: TWITTER_CALLBACK_URL
-        value: https://echo-wind.onrender.com/auth/twitter/callback
+        value: https://echo-wind.onrender.com/platforms/twitter/callback
       - key: LINKEDIN_CLIENT_ID
         value: 78h44a7lolh0fa
       - key: LINKEDIN_CLIENT_SECRET

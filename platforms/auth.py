@@ -12,6 +12,9 @@ import os
 from dotenv import load_dotenv
 import json
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -21,6 +24,10 @@ class PlatformAuthManager:
         self.twitter_client_id = os.getenv("TWITTER_CLIENT_ID")
         self.twitter_client_secret = os.getenv("TWITTER_CLIENT_SECRET")
         self.twitter_redirect_uri = os.getenv("TWITTER_REDIRECT_URI")
+        
+        logger.info(f"Initialized PlatformAuthManager")
+        logger.info(f"Twitter Client ID: {self.twitter_client_id[:10]}...")
+        logger.info(f"Twitter Redirect URI: {self.twitter_redirect_uri}")
         
         # Bluesky credentials
         self.bluesky_server = os.getenv("BLUESKY_SERVER", "https://bsky.social")
@@ -33,11 +40,16 @@ class PlatformAuthManager:
     async def get_twitter_auth_url(self) -> str:
         """Get Twitter OAuth URL"""
         try:
+            logger.info("Starting Twitter auth URL generation")
+            
             # Generate code verifier and challenge
             code_verifier = secrets.token_urlsafe(32)
+            logger.info(f"Generated code verifier: {code_verifier[:10]}...")
+            
             code_challenge = base64.urlsafe_b64encode(
                 hashlib.sha256(code_verifier.encode()).digest()
             ).decode().rstrip('=')
+            logger.info(f"Generated code challenge: {code_challenge[:10]}...")
             
             # Store code verifier in state
             state_data = {
@@ -45,7 +57,10 @@ class PlatformAuthManager:
                 'ts': int(time.time()),
                 'r': secrets.token_urlsafe(8)
             }
+            logger.info(f"Created state data: {json.dumps(state_data)}")
+            
             state = base64.urlsafe_b64encode(json.dumps(state_data).encode()).decode()
+            logger.info(f"Encoded state: {state[:10]}...")
             
             # Build auth URL
             params = {
@@ -57,21 +72,25 @@ class PlatformAuthManager:
                 'code_challenge': code_challenge,
                 'code_challenge_method': 'S256'
             }
+            logger.info(f"Auth URL parameters: {json.dumps({k: v[:10] + '...' if k not in ['response_type', 'scope', 'code_challenge_method'] else v for k, v in params.items()})}")
             
             auth_url = f"https://twitter.com/i/oauth2/authorize?{urlencode(params)}"
+            logger.info(f"Generated auth URL: {auth_url[:100]}...")
+            
             return auth_url
             
         except Exception as e:
+            logger.error(f"Failed to get Twitter auth URL", exc_info=True)
             raise Exception(f"Failed to get Twitter auth URL: {str(e)}")
             
     async def handle_twitter_callback(self, code: str, state: str) -> Dict:
         """Handle Twitter OAuth2 callback"""
         try:
             # Decode state parameter to get code verifier
-            print(f"Received state: {state}")
+            logger.info(f"Received state: {state}")
             state_data = json.loads(base64.urlsafe_b64decode(state.encode()).decode())
             code_verifier = state_data['cv']
-            print(f"Decoded code verifier from state: {code_verifier}")
+            logger.info(f"Decoded code verifier from state: {code_verifier}")
             
             # Exchange code for access token
             token_url = "https://api.twitter.com/2/oauth2/token"
@@ -89,12 +108,12 @@ class PlatformAuthManager:
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
             
-            print(f"Token request data: {data}")
-            print(f"Token request headers: {headers}")
+            logger.info(f"Token request data: {json.dumps({k: v[:10] + '...' if k not in ['grant_type'] else v for k, v in data.items()})}")
+            logger.info(f"Token request headers: {headers}")
             
             response = requests.post(token_url, headers=headers, data=data)
-            print(f"Token response status: {response.status_code}")
-            print(f"Token response body: {response.text}")
+            logger.info(f"Token response status: {response.status_code}")
+            logger.info(f"Token response body: {response.text}")
             response.raise_for_status()
             token_data = response.json()
             
@@ -106,8 +125,8 @@ class PlatformAuthManager:
                 'https://api.twitter.com/2/users/me',
                 headers=headers
             )
-            print(f"User info response status: {user_response.status_code}")
-            print(f"User info response body: {user_response.text}")
+            logger.info(f"User info response status: {user_response.status_code}")
+            logger.info(f"User info response body: {user_response.text}")
             user_response.raise_for_status()
             user_data = user_response.json()
             
@@ -119,9 +138,7 @@ class PlatformAuthManager:
             }
             
         except Exception as e:
-            print(f"Twitter callback error: {str(e)}")
-            if isinstance(e, requests.HTTPError):
-                print(f"Response body: {e.response.text}")
+            logger.error(f"Failed to handle Twitter callback", exc_info=True)
             raise Exception(f"Failed to handle Twitter callback: {str(e)}")
     
     async def authenticate_bluesky(self, identifier: str, password: str) -> Dict:
