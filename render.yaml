@@ -9,3 +9,13 @@ services:
         value: 3.11.0
       - key: PORT
         value: 8000
+      - key: TWITTER_CLIENT_ID
+        value: R2pjMnZONWw2dnpCcEJoNHdqSDE6MTpjaQ
+      - key: TWITTER_CLIENT_SECRET
+        value: cklCaHWUw1MDS3naHZd9BTPf2xn9dCczAU4kL1uQJzpNPzLjhP
+      - key: TWITTER_BEARER_TOKEN
+        value: AAAAAAAAAAAAAAAAAAAAAGc%2FyAEAAAAAIwk4MWfZdxQcust%2FSCd%2B58l7GCY%3DJEQAXPGjGjpg2uDs9LSYVDCYMSEZUiAYIWvRfN5qlCZVYMmymX
+      - key: TWITTER_REDIRECT_URI
+        value: https://social-content-generator.onrender.com/auth/twitter/callback
+      - key: TWITTER_CALLBACK_URL
+        value: https://social-content-generator.onrender.com/auth/twitter/callback
