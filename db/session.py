@@ -2,6 +2,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -15,16 +18,19 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
 if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Create engine with SSL configuration for PostgreSQL
+logger.info(f"Database URL prefix: {SQLALCHEMY_DATABASE_URL.split('://')[0]}")
+logger.info("SSL mode is configured via URL parameter")
+
+# Create engine with proper configuration for each database type
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    # Required for SQLite
-    connect_args={
-        "check_same_thread": False,
-        "sslmode": "require"
-    } if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {
-        "sslmode": "require"  # Always require SSL for PostgreSQL
-    }
+    # Only SQLite needs special connect args
+    connect_args={"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {},
+    # Add some connection pool settings
+    pool_size=5,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_recycle=1800  # Recycle connections every 30 minutes
 )
 
 # Create SessionLocal class
