@@ -1,40 +1,33 @@
+from pydantic import BaseSettings
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-class Settings:
+class Settings(BaseSettings):
     PROJECT_NAME: str = "Social Content Generator"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-here")
     
-    # Database
-    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
-    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
-    POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "localhost")
-    POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
+    # Database Configuration
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        "postgresql://user:password@db:5432/social_content"  # Docker compose default
+    )
     
-    # Get database name from DATABASE_URL or fallback to default
-    database_url = os.getenv("DATABASE_URL", "")
-    if database_url:
-        # Extract database name from DATABASE_URL
-        from urllib.parse import urlparse
-        db_url = urlparse(database_url)
-        POSTGRES_DB: str = db_url.path[1:]  # Remove leading '/'
-    else:
-        POSTGRES_DB: str = "social_content"
-        
-    DATABASE_URL: str = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
+    # If the URL starts with postgres://, convert it to postgresql://
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     
-    # Twitter
+    # Twitter Configuration
     TWITTER_CLIENT_ID: str = os.getenv("TWITTER_CLIENT_ID", "")
     TWITTER_CLIENT_SECRET: str = os.getenv("TWITTER_CLIENT_SECRET", "")
     TWITTER_REDIRECT_URI: str = os.getenv("TWITTER_REDIRECT_URI", "")
     TWITTER_CALLBACK_URL: str = os.getenv("TWITTER_CALLBACK_URL", "")
     TWITTER_BEARER_TOKEN: str = os.getenv("TWITTER_BEARER_TOKEN", "")
     
-    # LinkedIn
+    # LinkedIn Configuration
     LINKEDIN_CLIENT_ID: str = os.getenv("LINKEDIN_CLIENT_ID", "")
     LINKEDIN_CLIENT_SECRET: str = os.getenv("LINKEDIN_CLIENT_SECRET", "")
     LINKEDIN_REDIRECT_URI: str = os.getenv("LINKEDIN_REDIRECT_URI", "")
@@ -42,5 +35,8 @@ class Settings:
     # Bluesky
     BLUESKY_IDENTIFIER: str = os.getenv("BLUESKY_IDENTIFIER", "")
     BLUESKY_PASSWORD: str = os.getenv("BLUESKY_PASSWORD", "")
+
+    class Config:
+        case_sensitive = True
 
 settings = Settings()
