@@ -1,7 +1,7 @@
 [build]
   command = """
     apt-get update -y
-    apt-get install -y python3-dev
+    apt-get install -y python3-dev postgresql postgresql-contrib libpq-dev
     pip install -r requirements.txt
   """
   functions = "netlify/functions"
