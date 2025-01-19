@@ -42,5 +42,8 @@ WORKDIR /app
 # Copy application code
 COPY . .
 
+# Make the startup script executable
+RUN chmod +x /app/scripts/start.sh
+
 # Command to run the application (PORT will be provided by Render)
-CMD uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000} --log-level debug
+CMD ["/app/scripts/start.sh"]
