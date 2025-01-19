@@ -11,11 +11,20 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
     "sqlite:///./test.db"
 )
 
-# Create engine
+# If using postgres, ensure we use postgresql:// instead of postgres://
+if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# Create engine with SSL configuration for PostgreSQL
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     # Required for SQLite
-    connect_args={"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
+    connect_args={
+        "check_same_thread": False,
+        "sslmode": "require"
+    } if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {
+        "sslmode": "require"  # Always require SSL for PostgreSQL
+    }
 )
 
 # Create SessionLocal class
