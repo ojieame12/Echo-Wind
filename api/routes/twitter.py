@@ -6,6 +6,7 @@ import json
 import base64
 from pydantic import BaseModel
 import logging
+from fastapi.responses import JSONResponse
 
 from models.models import User, PlatformAccount, PlatformType, ContentPiece, ContentStatus
 from platforms.twitter import TwitterClient
@@ -88,12 +89,13 @@ async def twitter_auth(current_user: User = Depends(get_current_user)):
         auth_url = await auth_manager.get_twitter_auth_url()
         logger.info(f"Generated Twitter auth URL: {auth_url}")
         
-        return {"auth_url": auth_url}
+        # Return JSON response
+        return JSONResponse(content={"auth_url": auth_url})
     except Exception as e:
         logger.error(f"Failed to get Twitter auth URL: {str(e)}", exc_info=True)
-        raise HTTPException(
+        return JSONResponse(
             status_code=500,
-            detail=f"Failed to get Twitter auth URL: {str(e)}"
+            content={"error": f"Failed to get Twitter auth URL: {str(e)}"}
         )
 
 @router.get("/callback")

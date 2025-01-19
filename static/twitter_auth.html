@@ -18,6 +18,8 @@
             text-decoration: none;
             border-radius: 5px;
             margin: 10px 0;
+            cursor: pointer;
+            border: none;
         }
         .token-input {
             width: 100%;
@@ -27,8 +29,21 @@
         }
         .error {
             color: red;
-            display: none;
             margin: 10px 0;
+            padding: 10px;
+            border: 1px solid red;
+            border-radius: 5px;
+            background-color: #fff5f5;
+            display: none;
+        }
+        .response-data {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            display: none;
         }
     </style>
 </head>
@@ -50,9 +65,22 @@
     </div>
 
     <div id="error" class="error"></div>
+    <div id="responseData" class="response-data"></div>
 
     <script>
         let accessToken = '';
+
+        function showError(error, details = null) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = `Error: ${error}`;
+            
+            if (details) {
+                const responseDiv = document.getElementById('responseData');
+                responseDiv.style.display = 'block';
+                responseDiv.textContent = 'Response Details:\n' + JSON.stringify(details, null, 2);
+            }
+        }
 
         async function getAccessToken() {
             try {
@@ -61,6 +89,7 @@
                     method: 'POST'
                 });
                 const userData = await userResponse.json();
+                console.log('User created:', userData);
 
                 // Get token
                 const tokenResponse = await fetch('https://echo-wind.onrender.com/auth/token', {
@@ -70,7 +99,17 @@
                     },
                     body: 'username=test@example.com&password=testpassword'
                 });
+                
+                if (!tokenResponse.ok) {
+                    throw new Error(`Token request failed: ${tokenResponse.status} ${tokenResponse.statusText}`);
+                }
+                
                 const tokenData = await tokenResponse.json();
+                console.log('Token received:', tokenData);
+                
+                if (!tokenData.access_token) {
+                    throw new Error('No access token in response');
+                }
                 
                 accessToken = tokenData.access_token;
                 document.getElementById('tokenResult').innerHTML = `
@@ -78,9 +117,13 @@
                     <input type="text" value="${accessToken}" class="token-input" readonly>
                 `;
                 document.getElementById('step2').style.display = 'block';
+                
+                // Clear any previous errors
+                document.getElementById('error').style.display = 'none';
+                document.getElementById('responseData').style.display = 'none';
             } catch (error) {
-                document.getElementById('error').style.display = 'block';
-                document.getElementById('error').textContent = `Error: ${error.message}`;
+                showError(error.message);
+                console.error('Error getting access token:', error);
             }
         }
 
@@ -91,16 +134,30 @@
                         'Authorization': `Bearer ${accessToken}`
                     }
                 });
-                const data = await response.json();
+                
+                const responseText = await response.text();
+                console.log('Raw response:', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error(`Invalid JSON response: ${responseText}`);
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+                }
                 
                 if (data.auth_url) {
+                    console.log('Redirecting to:', data.auth_url);
                     window.location.href = data.auth_url;
                 } else {
-                    throw new Error('No auth URL received');
+                    throw new Error('No auth URL in response');
                 }
             } catch (error) {
-                document.getElementById('error').style.display = 'block';
-                document.getElementById('error').textContent = `Error: ${error.message}`;
+                showError(error.message);
+                console.error('Error starting Twitter auth:', error);
             }
         }
     </script>
