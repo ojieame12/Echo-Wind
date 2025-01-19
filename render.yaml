@@ -2,7 +2,9 @@ services:
   - type: web
     name: social-content-generator
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      apt-get update && apt-get install -y libpq-dev
+      pip install -r requirements.txt
     startCommand: alembic upgrade head && uvicorn api.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
