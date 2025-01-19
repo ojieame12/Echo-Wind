@@ -3,6 +3,7 @@ import logging
 import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from api.routes import twitter, auth
 
 # Configure logging to stdout
@@ -19,6 +20,9 @@ logger.info(f"Python version: {sys.version}")
 logger.info(f"Current working directory: {os.getcwd()}")
 
 app = FastAPI()
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/health")
 async def health_check():
