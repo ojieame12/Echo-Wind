@@ -65,7 +65,7 @@ class PlatformAuthManager:
                 'response_type': 'code',
                 'client_id': self.twitter_client_id.strip(),  # Ensure no whitespace
                 'redirect_uri': self.twitter_redirect_uri.strip(),  # Ensure no whitespace
-                'scope': 'tweet.read tweet.write users.read',
+                'scope': 'tweet.read tweet.write users.read offline.access dm.read dm.write',
                 'state': state,
                 'code_challenge': code_challenge,
                 'code_challenge_method': 'S256'
