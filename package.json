@@ -1,0 +1,13 @@
+{
+  "name": "social-content-generator",
+  "version": "1.0.0",
+  "description": "Social content generator with Twitter OAuth integration",
+  "main": "index.js",
+  "scripts": {
+    "build": "pip install -r requirements.txt"
+  },
+  "dependencies": {
+    "@netlify/functions": "^2.0.0",
+    "node-fetch": "^2.6.1"
+  }
+}
