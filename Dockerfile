@@ -42,5 +42,5 @@ WORKDIR /app
 # Copy application code
 COPY . .
 
-# Command to run migrations
-CMD ["alembic", "upgrade", "head"]
+# Command to run the application (PORT will be provided by Render)
+CMD uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000} --log-level debug
