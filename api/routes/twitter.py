@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request, Response
 from sqlalchemy.orm import Session
 from typing import Dict, Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import base64
 from pydantic import BaseModel
@@ -103,71 +103,52 @@ async def twitter_auth(current_user: User = Depends(get_current_user)):
 
 @router.get("/callback")
 async def twitter_callback(
-    request: Request,
-    code: str,
-    state: str,
-    db: Session = Depends(get_db)
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Handle Twitter OAuth callback"""
-    from platforms.auth import PlatformAuthManager
-    auth_manager = PlatformAuthManager()
-    
     try:
-        # Get email from query params
-        email = request.query_params.get('email')
-        print(f"Received callback with email: {email}")
-        if not email:
-            raise HTTPException(status_code=400, detail="Email parameter is required")
+        if error:
+            logger.error(f"Twitter OAuth error: {error}")
+            return RedirectResponse(url="/error?message=" + error)
+            
+        if not code or not state:
+            logger.error("Missing code or state in Twitter callback")
+            return RedirectResponse(url="/error?message=Missing+parameters")
+            
+        logger.info("Processing Twitter callback")
+        logger.info(f"Code received (first 10 chars): {code[:10]}...")
+        logger.info(f"State received (first 10 chars): {state[:10]}...")
         
-        # Get user
-        current_user = db.query(User).filter_by(email=email).first()
-        print(f"Found user: {current_user.email if current_user else None}")
-        if not current_user:
-            raise HTTPException(status_code=404, detail="User not found")
+        from platforms.auth import PlatformAuthManager
+        auth_manager = PlatformAuthManager()
         
-        # Handle OAuth callback with state parameter
-        print(f"Calling handle_twitter_callback with code: {code}, state: {state}")
-        credentials = await auth_manager.handle_twitter_callback(code, state)
-        print(f"Received credentials: {credentials}")
+        # Exchange code for tokens
+        token_data = await auth_manager.handle_twitter_callback(code, state)
+        logger.info("Successfully exchanged code for tokens")
         
         # Create or update platform account
-        platform = db.query(PlatformAccount).filter_by(
+        platform_account = PlatformAccount(
             user_id=current_user.id,
-            platform=PlatformType.TWITTER
-        ).first()
+            platform=PlatformType.TWITTER,
+            username=token_data["username"],
+            credentials=token_data,
+            is_active=True
+        )
         
-        if platform:
-            platform.credentials = credentials
-            platform.is_active = True
-            platform.username = credentials["username"]
-            print(f"Updated existing platform account for {platform.username}")
-        else:
-            platform = PlatformAccount(
-                user_id=current_user.id,
-                platform=PlatformType.TWITTER,
-                username=credentials["username"],
-                credentials=credentials,
-                is_active=True
-            )
-            db.add(platform)
-            print(f"Created new platform account for {platform.username}")
-            
+        db.merge(platform_account)
         db.commit()
-        print("Database changes committed")
+        logger.info(f"Saved Twitter credentials for user {current_user.email}")
         
-        return {
-            "success": True,
-            "username": credentials["username"]
-        }
+        return RedirectResponse(url="/dashboard?success=true")
         
     except Exception as e:
-        print(f"Error in twitter_callback: {str(e)}")
-        if isinstance(e, HTTPException):
-            raise e
-        raise HTTPException(
-            status_code=500,
-            detail=f"Twitter authentication failed: {str(e)}"
-        )
+        logger.error(f"Failed to handle Twitter callback: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return RedirectResponse(url=f"/error?message={str(e)}")
 
 @router.get("/dashboard")
 async def twitter_dashboard(
