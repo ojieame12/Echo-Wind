@@ -4,6 +4,10 @@ from sqlalchemy import pool
 from alembic import context
 import os
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add the project root directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -13,6 +17,14 @@ from models import Base
 
 # this is the Alembic Config object
 config = context.config
+
+# Override sqlalchemy.url with DATABASE_URL from environment
+db_url = os.getenv("DATABASE_URL")
+if db_url:
+    # Handle Render.com's postgres:// URLs
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    config.set_main_option("sqlalchemy.url", db_url)
 
 # Interpret the config file for Python logging
 if config.config_file_name is not None:
@@ -46,8 +58,9 @@ def run_migrations_online() -> None:
     In this scenario we need to create an Engine
     and associate a connection with the context.
     """
+    configuration = config.get_section(config.config_ini_section, {})
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
