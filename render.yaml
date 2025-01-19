@@ -7,7 +7,7 @@ services:
       - key: PORT
         value: 10000
       - key: DATABASE_URL
-        value: postgresql://social_content_generator_user:pass_1234@dpg-cm1aqcud3nmc73f9b6p0-a.oregon-postgres.render.com/social_content_generator?sslmode=require
+        value: postgresql://social_content_generator_user:pass_1234@dpg-cm1aqcud3nmc73f9b6p0-a.oregon-postgres.render.com:5432/social_content_generator?sslmode=require
       - key: TWITTER_CLIENT_ID
         value: R2pjMnZONWw2dnpCcEJoNHdqSDE6MTpjaQ
       - key: TWITTER_CLIENT_SECRET
