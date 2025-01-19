@@ -71,16 +71,20 @@ class PlatformAuthManager:
                 'code_challenge_method': 'S256'
             }
             
-            # Log full parameters for debugging
-            debug_params = params.copy()
-            debug_params['client_id'] = debug_params['client_id'][:10] + '...'
-            debug_params['code_challenge'] = debug_params['code_challenge'][:10] + '...'
-            debug_params['state'] = debug_params['state'][:10] + '...'
-            logger.info(f"Full auth parameters: {json.dumps(debug_params, indent=2)}")
+            # Log exact values for debugging (except secrets)
+            logger.info("OAuth Parameters:")
+            logger.info(f"client_id length: {len(params['client_id'])}")
+            logger.info(f"client_id: {params['client_id']}")  # Safe to log client_id
+            logger.info(f"redirect_uri: {params['redirect_uri']}")
+            logger.info(f"scope: {params['scope']}")
+            logger.info(f"response_type: {params['response_type']}")
+            logger.info(f"code_challenge_method: {params['code_challenge_method']}")
+            logger.info(f"state length: {len(params['state'])}")
+            logger.info(f"code_challenge length: {len(params['code_challenge'])}")
             
             # Build and encode URL properly
             auth_url = "https://twitter.com/i/oauth2/authorize?" + urlencode(params)
-            logger.info(f"Final auth URL: {auth_url[:100]}...")
+            logger.info(f"Final auth URL: {auth_url}")
             
             return auth_url
             
