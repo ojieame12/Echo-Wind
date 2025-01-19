@@ -73,15 +73,11 @@ async def get_twitter_client(
     return TwitterClient(platform.credentials)
 
 @router.get("/auth", response_model=TwitterAuthResponse)
-async def twitter_auth(
-    current_user: User = Depends(get_current_user),
-    authorization: str = Header(None)
-):
+async def twitter_auth():
     """Get Twitter OAuth URL"""
     try:
         # Log request details
-        logger.info(f"Twitter auth request from user {current_user.email}")
-        logger.info(f"Authorization header: {authorization[:20]}...")
+        logger.info("Received Twitter auth request")
         
         # Validate environment variables
         if not settings.TWITTER_CLIENT_ID:
