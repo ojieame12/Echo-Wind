@@ -6,7 +6,7 @@ import json
 import base64
 from pydantic import BaseModel
 import logging
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 import traceback
 
 from models.models import User, PlatformAccount, PlatformType, ContentPiece, ContentStatus
@@ -123,52 +123,81 @@ async def twitter_auth(
 
 @router.get("/callback")
 async def twitter_callback(
+    request: Request,
     code: Optional[str] = None,
     state: Optional[str] = None,
     error: Optional[str] = None,
+    error_description: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Handle Twitter OAuth callback"""
     try:
+        # Log all query parameters for debugging
+        params = dict(request.query_params)
+        logger.info(f"Twitter callback received with params: {params}")
+        
+        # Check for errors from Twitter
         if error:
-            logger.error(f"Twitter OAuth error: {error}")
-            return RedirectResponse(url="/error?message=" + error)
+            error_msg = f"Twitter OAuth error: {error}"
+            if error_description:
+                error_msg += f" - {error_description}"
+            logger.error(error_msg)
+            return RedirectResponse(url=f"/error?message={error_msg}")
             
         if not code or not state:
-            logger.error("Missing code or state in Twitter callback")
-            return RedirectResponse(url="/error?message=Missing+parameters")
+            error_msg = "Missing code or state in Twitter callback"
+            logger.error(error_msg)
+            return RedirectResponse(url=f"/error?message={error_msg}")
             
         logger.info("Processing Twitter callback")
         logger.info(f"Code received (first 10 chars): {code[:10]}...")
         logger.info(f"State received (first 10 chars): {state[:10]}...")
         
+        try:
+            # Decode state to verify it's valid
+            state_data = json.loads(base64.urlsafe_b64decode(state.encode()).decode())
+            if 'ts' not in state_data or 'cv' not in state_data:
+                raise ValueError("Invalid state format")
+        except Exception as e:
+            error_msg = f"Invalid state parameter: {str(e)}"
+            logger.error(error_msg)
+            return RedirectResponse(url=f"/error?message={error_msg}")
+        
         from platforms.auth import PlatformAuthManager
         auth_manager = PlatformAuthManager()
         
-        # Exchange code for tokens
-        token_data = await auth_manager.handle_twitter_callback(code, state)
-        logger.info("Successfully exchanged code for tokens")
-        
-        # Create or update platform account
-        platform_account = PlatformAccount(
-            user_id=current_user.id,
-            platform=PlatformType.TWITTER,
-            username=token_data["username"],
-            credentials=token_data,
-            is_active=True
-        )
-        
-        db.merge(platform_account)
-        db.commit()
-        logger.info(f"Saved Twitter credentials for user {current_user.email}")
-        
-        return RedirectResponse(url="/dashboard?success=true")
+        try:
+            # Exchange code for tokens
+            token_data = await auth_manager.handle_twitter_callback(code, state)
+            logger.info("Successfully exchanged code for tokens")
+            
+            # Create or update platform account
+            platform_account = PlatformAccount(
+                user_id=current_user.id,
+                platform=PlatformType.TWITTER,
+                username=token_data["username"],
+                credentials=token_data,
+                is_active=True
+            )
+            
+            db.merge(platform_account)
+            db.commit()
+            logger.info(f"Saved Twitter credentials for user {current_user.email}")
+            
+            return RedirectResponse(url="/dashboard?success=true")
+            
+        except Exception as e:
+            error_msg = f"Failed to exchange code for tokens: {str(e)}"
+            logger.error(error_msg)
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return RedirectResponse(url=f"/error?message={error_msg}")
         
     except Exception as e:
-        logger.error(f"Failed to handle Twitter callback: {str(e)}")
+        error_msg = f"Unexpected error in callback: {str(e)}"
+        logger.error(error_msg)
         logger.error(f"Traceback: {traceback.format_exc()}")
-        return RedirectResponse(url=f"/error?message={str(e)}")
+        return RedirectResponse(url=f"/error?message={error_msg}")
 
 @router.get("/dashboard")
 async def twitter_dashboard(

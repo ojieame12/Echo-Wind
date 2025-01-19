@@ -65,7 +65,7 @@ class PlatformAuthManager:
                 'response_type': 'code',
                 'client_id': self.twitter_client_id,
                 'redirect_uri': self.twitter_redirect_uri,
-                'scope': 'tweet.read tweet.write users.read offline.access',
+                'scope': 'tweet.read tweet.write users.read',  
                 'state': state,
                 'code_challenge': code_challenge,
                 'code_challenge_method': 'S256'
