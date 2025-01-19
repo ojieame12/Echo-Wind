@@ -19,3 +19,9 @@ services:
         value: https://social-content-generator.onrender.com/auth/twitter/callback
       - key: TWITTER_CALLBACK_URL
         value: https://social-content-generator.onrender.com/auth/twitter/callback
+      - key: LINKEDIN_CLIENT_ID
+        value: 78h44a7lolh0fa
+      - key: LINKEDIN_CLIENT_SECRET
+        value: WPL_AP1.VQFNDLP21qQ5yPOY.zjs8HA==
+      - key: LINKEDIN_REDIRECT_URI
+        value: https://social-content-generator.onrender.com/auth/linkedin/callback
