@@ -33,5 +33,6 @@ HTTPCACHE_EXPIRATION_SECS = 86400  # 24 hours
 HTTPCACHE_DIR = 'httpcache'
 HTTPCACHE_IGNORE_HTTP_CODES = [404, 500, 502, 503, 504]
 
-# Database settings
-DATABASE_URL = 'postgresql://postgres:postgres@db:5432/social_content'
+# Use environment variable for database URL
+import os
+DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://user:password@db:5432/social_content')

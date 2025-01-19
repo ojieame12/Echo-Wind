@@ -14,7 +14,17 @@ class Settings:
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
     POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "localhost")
     POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
-    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "social_content")
+    
+    # Get database name from DATABASE_URL or fallback to default
+    database_url = os.getenv("DATABASE_URL", "")
+    if database_url:
+        # Extract database name from DATABASE_URL
+        from urllib.parse import urlparse
+        db_url = urlparse(database_url)
+        POSTGRES_DB: str = db_url.path[1:]  # Remove leading '/'
+    else:
+        POSTGRES_DB: str = "social_content"
+        
     DATABASE_URL: str = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
     
     # Twitter
