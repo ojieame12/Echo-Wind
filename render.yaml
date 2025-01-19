@@ -3,7 +3,7 @@ services:
     name: social-content-generator
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT --log-level debug
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
