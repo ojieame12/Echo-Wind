@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request, Response, Header
 from sqlalchemy.orm import Session
 from typing import Dict, Optional, List
 from datetime import datetime, timedelta
@@ -6,7 +6,7 @@ import json
 import base64
 from pydantic import BaseModel
 import logging
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse
 import traceback
 
 from models.models import User, PlatformAccount, PlatformType, ContentPiece, ContentStatus
@@ -72,33 +72,53 @@ async def get_twitter_client(
     return TwitterClient(platform.credentials)
 
 @router.get("/auth", response_model=TwitterAuthResponse)
-async def twitter_auth(current_user: User = Depends(get_current_user)):
+async def twitter_auth(
+    current_user: User = Depends(get_current_user),
+    authorization: str = Header(None)
+):
     """Get Twitter OAuth URL"""
-    from platforms.auth import PlatformAuthManager
-    auth_manager = PlatformAuthManager()
-    
     try:
-        logger.info(f"Getting Twitter auth URL for user {current_user.email}")
+        # Log request details
+        logger.info(f"Twitter auth request from user {current_user.email}")
+        logger.info(f"Authorization header: {authorization[:20]}...")
         
-        # Log environment variables (redacted)
+        # Validate environment variables
+        if not settings.TWITTER_CLIENT_ID:
+            raise HTTPException(status_code=500, detail="TWITTER_CLIENT_ID not configured")
+        if not settings.TWITTER_CLIENT_SECRET:
+            raise HTTPException(status_code=500, detail="TWITTER_CLIENT_SECRET not configured")
+        if not settings.TWITTER_REDIRECT_URI:
+            raise HTTPException(status_code=500, detail="TWITTER_REDIRECT_URI not configured")
+            
         logger.info("Twitter environment variables:")
-        logger.info(f"TWITTER_CLIENT_ID set: {'Yes' if settings.TWITTER_CLIENT_ID else 'No'}")
-        logger.info(f"TWITTER_CLIENT_SECRET set: {'Yes' if settings.TWITTER_CLIENT_SECRET else 'No'}")
+        logger.info(f"TWITTER_CLIENT_ID: {settings.TWITTER_CLIENT_ID[:10]}...")
         logger.info(f"TWITTER_REDIRECT_URI: {settings.TWITTER_REDIRECT_URI}")
         
-        # Get auth URL with code verifier in state
-        auth_url = await auth_manager.get_twitter_auth_url()
-        logger.info(f"Generated Twitter auth URL: {auth_url}")
+        # Initialize auth manager
+        from platforms.auth import PlatformAuthManager
+        auth_manager = PlatformAuthManager()
         
-        # Return JSON response
-        return {"auth_url": auth_url}
-        
+        # Get auth URL
+        try:
+            auth_url = await auth_manager.get_twitter_auth_url()
+            logger.info(f"Generated Twitter auth URL: {auth_url[:50]}...")
+            return {"auth_url": auth_url}
+        except Exception as e:
+            logger.error(f"Failed to generate Twitter auth URL: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to generate Twitter auth URL: {str(e)}"
+            )
+            
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Failed to get Twitter auth URL: {str(e)}")
+        logger.error(f"Unexpected error in twitter_auth: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
-        return JSONResponse(
+        raise HTTPException(
             status_code=500,
-            content={"error": f"Failed to get Twitter auth URL: {str(e)}"}
+            detail=f"Unexpected error: {str(e)}"
         )
 
 @router.get("/callback")
